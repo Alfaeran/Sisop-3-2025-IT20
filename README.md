@@ -1006,7 +1006,7 @@ if (argc == 1) {
 ```
 
 # Soal 3
-##Laporan Proyek "The Lost Dungeon"
+## Laporan Proyek "The Lost Dungeon"
 
 
 Game ini dibangun dalam bahasa C dan terdiri dari 4 file utama:
@@ -1035,7 +1035,7 @@ Penggunaan
 
 Semua file .c yang menggunakan struktur dan fungsi ini harus #include "shop.h"
 
-2. shop.c
+**2. shop.c**
 
 Isi
 
@@ -1049,7 +1049,7 @@ Fungsi Utama
 - default_weapon() – senjata awal ("Fist")
 
 
-3. dungeon.c
+**3. dungeon.c**
 
 Isi
 
@@ -1068,7 +1068,7 @@ Penggunaan
 Dipanggil oleh player.c melalui extern agar pemain bisa interaksi dengan server.
 
 
-4. player.c
+**4. player.c**
 
 Isi
 
@@ -1110,13 +1110,6 @@ Enter weapon ID to buy:
 # Soal 4
 ## Laporan Proyek Sistem Hunter - SISOP 2025
 
-
-**Deskripsi Singkat**
-
-
-Proyek ini adalah simulasi sistem manajemen Hunter berbasis CLI yang terdiri dari dua program utama: system.c sebagai server (admin) dan hunter.c sebagai client (pengguna hunter). Keduanya berkomunikasi menggunakan Shared Memory (IPC) di sistem Linux.
-
-
 Fitur utama:
 •	Registrasi dan login Hunter
 •	Manajemen Dungeon (generate, tampilkan, raid)
@@ -1128,12 +1121,12 @@ Fitur utama:
 Penggunaan
 
 
-1. Jalankan Program System (Admin)
+**1. Jalankan Program System (Admin)**
 ```./system```
 Ini akan memulai sistem dan membuat Shared Memory yang dibutuhkan.
 
 
-3. Jalankan Program Hunter
+**2. Jalankan Program Hunter**
 
 ```./hunter```
 Hunter dapat mendaftar, login, dan berinteraksi dengan dungeon maupun hunter lain.
