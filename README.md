@@ -5,7 +5,9 @@
 - **Rizqi Akbar Sukirman Putra NRP 5027241044**
 - **M. Alfaeran Auriga Ruswandi NRP 5027241115**
 
-# Soal 1
+## Laporan Resmi Modul 3
+
+### Soal 1
 image_server.c
 ```c
 
