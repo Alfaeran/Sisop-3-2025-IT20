@@ -1005,10 +1005,228 @@ if (argc == 1) {
 }
 ```
 
-
-
-
-
 # Soal 3
+##Laporan Proyek "The Lost Dungeon"
+
+
+Game ini dibangun dalam bahasa C dan terdiri dari 4 file utama:
+shop.h, shop.c, dungeon.c, player.c
+
+**1. shop.h**
+
+Isi
+
+Header file ini mendefinisikan semua struktur data dan deklarasi fungsi yang digunakan oleh shop.c, player.c, dan dungeon.c.
+
+Struktur yang Didefinisikan
+
+- Weapon – menyimpan info nama, damage, harga, passive effect
+- WeaponList – kumpulan senjata di toko
+- Player – status pemain
+- BuyRequest – struktur pembelian senjata
+- BattleResult – hasil pertempuran
+- Fungsi Dideklarasikan
+- void init_shop();
+- WeaponList* get_shop_weapon_list();
+- int buy_weapon(Player*, int);
+- Weapon default_weapon();
+
+Penggunaan
+
+Semua file .c yang menggunakan struktur dan fungsi ini harus #include "shop.h"
+
+2. shop.c
+
+Isi
+
+Mengimplementasikan semua fungsi yang berkaitan dengan senjata dan toko.
+
+Fungsi Utama
+
+- init_shop() – mengisi daftar senjata di toko (5 jenis senjata awal)
+- get_shop_weapon_list() – mengembalikan daftar senjata
+- buy_weapon(Player*, int) – memproses pembelian senjata oleh pemain
+- default_weapon() – senjata awal ("Fist")
+
+
+3. dungeon.c
+
+Isi
+
+Berperan sebagai "server statis" yang menyimpan daftar pemain dan logika pertempuran.
+
+Fungsi Utama
+
+- register_player() – mendaftarkan pemain baru
+- get_player_stats() – mengembalikan status pemain
+- get_shop_weapons() – memanggil daftar senjata dari shop
+- buy_weapon_for_player() – membeli senjata berdasarkan request
+- battle() – memproses logika pertempuran
+
+Penggunaan
+
+Dipanggil oleh player.c melalui extern agar pemain bisa interaksi dengan server.
+
+
+4. player.c
+
+Isi
+
+Program utama yang dijalankan user. Mewakili client.
+
+Fungsi
+
+- main() – menerima nama pemain dari argumen terminal
+- show_menu() – menampilkan menu utama
+- show_stats() – menampilkan status pemain
+- open_shop() – menampilkan daftar senjata, menerima input, memproses pembelian
+- view_inventory() – menampilkan senjata yang sedang dipakai
+- battle_mode() – menampilkan hasil pertarungan
+
+
+Jalankan:
+```./game Rik```
+
+Output Contoh
+```
+=== THE LOST DUNGEON ===
+1. Show Player Stats
+2. Weapon Shop
+3. View Inventory
+4. Battle Mode
+5. Exit
+Choose: 2
+
+--- Weapon Shop ---
+[0] Rusty Sword - 100 gold, 5 dmg
+[1] Steel Blade - 200 gold, 10 dmg
+[2] Flame Dagger - 300 gold, 8 dmg [Passive: +5 dmg chance on hit]
+[3] Thunder Axe - 400 gold, 12 dmg [Passive: Chance to stun enemy]
+[4] Shadow Katana - 500 gold, 15 dmg
+[-1] Cancel
+Enter weapon ID to buy:
+```
 
 # Soal 4
+## Laporan Proyek Sistem Hunter - SISOP 2025
+
+
+**Deskripsi Singkat**
+
+
+Proyek ini adalah simulasi sistem manajemen Hunter berbasis CLI yang terdiri dari dua program utama: system.c sebagai server (admin) dan hunter.c sebagai client (pengguna hunter). Keduanya berkomunikasi menggunakan Shared Memory (IPC) di sistem Linux.
+
+
+Fitur utama:
+•	Registrasi dan login Hunter
+•	Manajemen Dungeon (generate, tampilkan, raid)
+•	PVP antar Hunter
+•	Fitur admin: melihat info Hunter dan Dungeon, ban Hunter, reset status
+•	Fitur notifikasi dungeon berkala
+
+
+Penggunaan
+
+
+1. Jalankan Program System (Admin)
+```./system```
+Ini akan memulai sistem dan membuat Shared Memory yang dibutuhkan.
+
+
+3. Jalankan Program Hunter
+
+```./hunter```
+Hunter dapat mendaftar, login, dan berinteraksi dengan dungeon maupun hunter lain.
+
+
+Fitur System.c
+•	Menampilkan semua data Hunter
+•	Menampilkan semua Dungeon
+•	Generate dungeon secara acak
+•	Ban/unban Hunter tertentu
+•	Reset stat Hunter ke awal
+•	Hapus Shared Memory saat keluar
+
+
+Fitur Hunter.c
+•	Registrasi akun baru
+•	Login akun
+•	Melihat dungeon yang tersedia sesuai level
+•	Melakukan raid dungeon dan mendapat reward
+•	Melakukan PVP dan mengambil semua stat lawan
+•	Notifikasi dungeon muncul setiap 3 detik (jika diaktifkan)
+
+
+Contoh Output
+```
+=== SYSTEM MENU ===
+1. Generate Dungeon
+2. View Dungeons
+3. Reset Dungeons
+4. Ban Hunter
+5. Exit
+Choice: 1
+25 dungeons generated.
+
+=== SYSTEM MENU ===
+1. Generate Dungeon
+2. View Dungeons
+3. Reset Dungeons
+4. Ban Hunter
+5. Exit
+Choice: 2
+
+=== DUNGEONS ===
+[1] Red Gate Dungeon (Level 1+) - EXP: 86, ATK: 10, HP: 45, DEF: 5
+[2] Blue Gate Dungeon (Level 1+) - EXP: 66, ATK: 20, HP: 35, DEF: 10
+[3] Black Gate Dungeon (Level 1+) - EXP: 76, ATK: 14, HP: 32, DEF: 9
+[4] Black Gate Dungeon (Level 3+) - EXP: 108, ATK: 80, HP: 176, DEF: 21
+[5] Black Gate Dungeon (Level 9+) - EXP: 150, ATK: 46, HP: 112, DEF: 16
+[6] Black Gate Dungeon (Level 10+) - EXP: 115, ATK: 33, HP: 174, DEF: 23
+[7] Black Gate Dungeon (Level 2+) - EXP: 149, ATK: 57, HP: 192, DEF: 11
+[8] Black Gate Dungeon (Level 4+) - EXP: 82, ATK: 113, HP: 158, DEF: 26
+[9] Blue Gate Dungeon (Level 1+) - EXP: 106, ATK: 20, HP: 114, DEF: 14
+[10] Red Gate Dungeon (Level 2+) - EXP: 100, ATK: 49, HP: 57, DEF: 23
+[11] Blue Gate Dungeon (Level 7+) - EXP: 121, ATK: 85, HP: 114, DEF: 23
+[12] Blue Gate Dungeon (Level 4+) - EXP: 112, ATK: 46, HP: 110, DEF: 22
+[13] Blue Gate Dungeon (Level 8+) - EXP: 113, ATK: 101, HP: 100, DEF: 21
+[14] Black Gate Dungeon (Level 4+) - EXP: 69, ATK: 79, HP: 69, DEF: 18
+[15] Blue Gate Dungeon (Level 5+) - EXP: 56, ATK: 89, HP: 144, DEF: 18
+[16] Black Gate Dungeon (Level 10+) - EXP: 132, ATK: 105, HP: 114, DEF: 30
+[17] Blue Gate Dungeon (Level 8+) - EXP: 51, ATK: 71, HP: 187, DEF: 17
+[18] Blue Gate Dungeon (Level 10+) - EXP: 114, ATK: 69, HP: 56, DEF: 16
+[19] Red Gate Dungeon (Level 4+) - EXP: 140, ATK: 94, HP: 193, DEF: 16
+[20] Black Gate Dungeon (Level 8+) - EXP: 139, ATK: 91, HP: 53, DEF: 18
+[21] Blue Gate Dungeon (Level 1+) - EXP: 126, ATK: 120, HP: 172, DEF: 23
+[22] Black Gate Dungeon (Level 4+) - EXP: 137, ATK: 47, HP: 145, DEF: 30
+[23] Black Gate Dungeon (Level 9+) - EXP: 109, ATK: 91, HP: 151, DEF: 22
+[24] Blue Gate Dungeon (Level 3+) - EXP: 92, ATK: 51, HP: 79, DEF: 14
+[25] Red Gate Dungeon (Level 6+) - EXP: 81, ATK: 114, HP: 141, DEF: 23
+
+1. Register
+2. Login
+3. Exit
+Choice: 1
+Enter name: Rok
+Registered hunter Rok!
+
+1. Register
+2. Login
+3. Exit
+Choice: 2
+Enter name: Rok
+Welcome back, Rok!
+
+=== HUNTER MENU ===
+1. View Available Dungeons
+2. Raid Dungeon
+3. Logout
+Choice: 1
+
+=== AVAILABLE DUNGEONS ===
+Red Gate Dungeon | EXP: 86 | ATK: 10 | HP: 45 | DEF: 5
+Blue Gate Dungeon | EXP: 66 | ATK: 20 | HP: 35 | DEF: 10
+Black Gate Dungeon | EXP: 76 | ATK: 14 | HP: 32 | DEF: 9
+Blue Gate Dungeon | EXP: 106 | ATK: 20 | HP: 114 | DEF: 14
+Blue Gate Dungeon | EXP: 126 | ATK: 120 | HP: 172 | DEF: 23
+```
