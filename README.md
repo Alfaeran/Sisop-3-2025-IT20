@@ -981,28 +981,318 @@ int main() {
 ```
 
 # Soal 2
-a. Mengunduh File Order dan Menyimpannya ke Shared Memory
+**dispatcher.c**
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <time.h>
+```
+library c, 
+
+```<sys/ipc.h>``` Untuk menggunakan key_t dan fungsi ftok() yang menghasilkan kunci unik shared memory.
+
+```<sys/shm.h>``` Untuk menggunakan fungsi shared memory seperti shmget(), shmat(), shmdt().
+
+```<time.h>``` Untuk fungsi waktu seperti time(), localtime(), dan strftime() untuk membuat timestamp pada log.
+```
+#define MAX_ORDER 100
+
+typedef struct {
+char nama_penerima[100];
+char alamat_tujuan[100];
+char jenis_pengiriman[10];
+int status;
+char agen[50];
+} DataPesanan;
+```
+Menyimpan data satu pesanan yang berisi: nama, alamat, jenis (Reguler/Express), status (0 = pending, 1 = delivered), dan agen pengantar.
+
+```
+void catat_ke_log(const char *agen, const char *tipe, const char *nama, const char *alamat) {
+FILE *log = fopen("delivery.log", "a");
+
+if (!log) {
+perror("Gagal membuka delivery.log");
+return;
+}
+
+time_t now = time(NULL);
+struct tm *t = localtime(&now);
+fprintf(log, "[%02d/%02d/%d %02d:%02d:%02d] [%s] %s package delivered to %s in %s\n",
+t->tm_mday, t->tm_mon + 1, t->tm_year + 1900,
+t->tm_hour, t->tm_min, t->tm_sec,
+agen, tipe, nama, alamat);
+fclose(log);
+}
+```
+Menulis log ke file delivery.log .
+
+```
+int main(int argc, char *argv[]) {
+key_t key = ftok("delivery_order.csv", 65);
+int shmid = shmget(key, sizeof(DataPesanan) * MAX_ORDER, IPC_CREAT | 0666);
+
+if (shmid == -1) {
+perror("Gagal membuat shared memory");
+exit(1);
+}
+
+DataPesanan *orders = (DataPesanan *) shmat(shmid, NULL, 0);
+if (orders == (void *)-1) {
+perror("Kesalahan saat menautkan shared memory");
+exit(1);
+}
+```
+Program ini akan menghasilkan key shared memory dari file delivery_order.csv, mengalokasikan shared memory untuk 100 pesanan dan ```shmat()``` menempelkan shared memory ke pointer orders.
+
+
+
+**a. Mengunduh File Order dan Menyimpannya ke Shared Memory**
 ```
 if (argc == 1) {
-    FILE *file = fopen("delivery_order.csv", "r");
-    if (!file) {
-        perror("Gagal membuka file CSV");
-        exit(1);
-    }
-
-    int i = 0;
-    while (fscanf(file, "%[^,],%[^,],%[^\n]\n",
-                  orders[i].nama_penerima,
-                  orders[i].alamat_tujuan,
-                  orders[i].jenis_pengiriman) != EOF) {
-        orders[i].status = 0;
-        strcpy(orders[i].agen, "-");
-        i++;
-    }
-
-    fclose(file);
-    printf("Pesanan berhasil dimuat ke shared memory.\n");
+FILE *file = fopen("delivery_order.csv", "r");
+if (!file) {
+perror("Gagal membuka file CSV");
+exit(1);
 }
+
+int i = 0;
+char header[256];
+fgets(header, sizeof(header), file);
+
+while (fscanf(file, "%[^,],%[^,],%s\n",
+orders[i].nama_penerima,
+orders[i].alamat_tujuan,
+orders[i].jenis_pengiriman) != EOF) {
+orders[i].status = 0;
+strcpy(orders[i].agen, "-");
+i++;
+}
+
+fclose(file);
+printf("Pesanan berhasil dimuat ke shared memory.\n");
+}
+```
+Program ini akan Membuka isi file CSV ```FILE *file = fopen("delivery_order.csv", "r");```
+
+``` while (fscanf(file, "%[^,],%[^,],%[^\n]\n", (...) ``` Membaca file CSV dan memasukkan setiap pesanan ke dalam orders[i].
+
+```status = 0``` Menandai bahwa pesanan belum dikirim dan agen dengan tanda ```"-"```karena belum ada agen yang ditugaskan untuk mengantar pesanan itu.
+
+**c. Pengiriman Bertipe Reguler**
+```
+else if (argc == 3 && strcmp(argv[1], "-deliver") == 0) {
+char *target = argv[2];
+int ditemukan = 0;
+
+for (int i = 0; i < MAX_ORDER; i++) {
+if (strcmp(orders[i].nama_penerima, target) == 0 &&
+strcmp(orders[i].jenis_pengiriman, "Reguler") == 0 &&
+orders[i].status == 0) {
+
+orders[i].status = 1;
+snprintf(orders[i].agen, sizeof(orders[i].agen), "AGENT %s", target);
+catat_ke_log(orders[i].agen, "Reguler", orders[i].nama_penerima, orders[i].alamat_tujuan);
+printf("Pesanan %s berhasil dikirim oleh %s.\n", orders[i].nama_penerima, orders[i].agen);
+ditemukan = 1;
+break;
+}
+}
+
+if (!ditemukan) {
+printf("Pesanan Reguler untuk %s tidak ditemukan atau sudah dikirim.\n", target);
+}
+}
+```
+Program akan mencari pesanan Reguler dengan nama yang cocok dan belum dikirim. Jika ditemukan, pesanan ditandai sebagai terkirim, nama agen dicatat, dan log dicetak ke delivery.log.
+Jika tidak ditemukan, ditampilkan pesan bahwa pesanan tidak ada atau sudah dikirim.
+
+**d. Mengecek Status Pesanan**
+```
+else if (argc == 3 && strcmp(argv[1], "-status") == 0) {
+char *target = argv[2];
+int ditemukan = 0;
+
+for (int i = 0; i < MAX_ORDER; i++) {
+if (strcmp(orders[i].nama_penerima, target) == 0) {
+ditemukan = 1;
+
+if (orders[i].status == 0) {
+printf("Status untuk %s: Pending\n", orders[i].nama_penerima);
+} else {
+printf("Status untuk %s: Dikirim oleh %s\n", orders[i].nama_penerima, orders[i].agen);
+}
+break;
+}
+}
+
+if (!ditemukan) {
+printf("Pesanan untuk %s tidak ditemukan.\n", target);
+}
+}
+```
+Kode ini dijalankan dengan mengetik ./dispatcher -status <nama>.
+
+Program akan mencari pesanan dengan nama tersebut dan menampilkan statusnya:
+
+- Jika belum dikirim: Pending
+  
+- Jika sudah dikirim: ditampilkan siapa agennya
+  
+- Jika pesanan tidak ditemukan, akan muncul pesan kesalahan
+
+**e. Melihat Daftar Semua Pesanan**
+```
+else if (argc == 2 && strcmp(argv[1], "-list") == 0) {
+for (int i = 0; i < MAX_ORDER; i++) {
+if (strlen(orders[i].nama_penerima) == 0) continue;
+
+printf("[%s] %s %s %s %s\n",
+orders[i].jenis_pengiriman,
+orders[i].status == 0 ? "\033[1;31mPending\033[0m" : "\033[1;32mDelivered\033[0m",
+orders[i].nama_penerima,
+orders[i].alamat_tujuan,
+orders[i].agen);
+}
+}
+
+shmdt(orders);
+return 0;
+}
+```
+Kode ini dijalankan dengan mengetik ./dispatcher -list.
+
+Program akan mencetak semua pesanan yang ada di shared memory seperti: Jenis pengiriman, Status (Pending atau Delivered), Nama penerima, Alamat tujuan dan Agen pengantar.
+
+**delivery_agent.c**
+
+Program ini akan membaca pesanan dari shared memory, menjalankan 3 thread agen pengantar Express (AGENT A, B, dan C).
+
+Tiap agen otomatis:
+
+- Mencari pesanan Express yang belum dikirim
+
+- Mengirim pesanan
+
+- Mencatat ke delivery.log
+```
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <time.h>
+
+#define MAX_ORDER 100
+```
+Menggunakan library untuk I/O seperti threading (pthread), shared memory (sys/shm.h), dan waktu (time.h).
+
+```
+typedef struct {
+char nama_penerima[100];
+char alamat_tujuan[100];
+char jenis_pengiriman[10];
+int status;
+char agen[50];
+} DataPesanan;
+```
+Menyimpan data satu pesanan yang berisi: nama, alamat, jenis (Reguler/Express), dan agen pengantar.
+
+```
+DataPesanan *orders;
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+```
+- orders menunjuk ke shared memory berisi array pesanan.
+
+- lock digunakan agar akses antar thread tidak saling tumpang tindih (race condition)
+
+```
+void catat_ke_log(const char *agent, const char *nama, const char *alamat) {
+FILE *log = fopen("delivery.log", "a");
+
+if (!log) {
+perror("Gagal membuka delivery.log");
+return;
+}
+
+time_t now = time(NULL);
+struct tm *t = localtime(&now);
+fprintf(log, "[%02d/%02d/%d %02d:%02d:%02d] [%s] Express package delivered to %s in %s\n",
+t->tm_mday, t->tm_mon + 1, t->tm_year + 1900,
+t->tm_hour, t->tm_min, t->tm_sec,
+agent, nama, alamat);
+fclose(log);
+}
+```
+
+Menulis log pengiriman Express ke file delivery.log .
+
+```
+void *agent_express(void *arg) {
+char *agent_name = (char *)arg;
+
+while (1) {
+pthread_mutex_lock(&lock);
+for (int i = 0; i < MAX_ORDER; i++) {
+if (strcmp(orders[i].jenis_pengiriman, "Express") == 0 && orders[i].status == 0) {
+orders[i].status = 1;
+snprintf(orders[i].agen, sizeof(orders[i].agen), "%s", agent_name);
+catat_ke_log(agent_name, orders[i].nama_penerima, orders[i].alamat_tujuan);
+printf("[%s] Mengirim pesanan: %s (%s)\n", agent_name, orders[i].nama_penerima, orders[i].alamat_tujuan);
+}
+}
+
+pthread_mutex_unlock(&lock);
+sleep(1);
+}
+return NULL;
+}
+```
+
+Program akan mencari order dengan ```jenis_pengiriman == "Express"``` dan ```status == 0```, kemudian tandai sudah dikirim. Lalu mengisi nama agen dan menulisnya kedalam log kemudian akan tampilkan di terminal. Loop terus setiap detik.
+
+```
+void mulai_thread_agen() {
+pthread_t agents[3];
+char *names[3] = { "AGENT A", "AGENT B", "AGENT C" };
+
+for (int i = 0; i < 3; i++) {
+pthread_create(&agents[i], NULL, agent_express, names[i]);
+}
+
+for (int i = 0; i < 3; i++) {
+pthread_join(agents[i], NULL);
+}
+}
+```
+Program akan Membuat 3 thread untuk AGENT A, B, dan C dan semua menjalankan agent_express.
+
+```
+int main() {
+key_t key = ftok("delivery_order.csv", 65);
+int shmid = shmget(key, sizeof(DataPesanan) * MAX_ORDER, 0666);
+if (shmid == -1) {
+perror("Gagal mendapatkan shared memory");
+exit(1);
+}
+
+orders = (DataPesanan *)shmat(shmid, NULL, 0);
+if (orders == (void *)-1) {
+perror("Kesalahan saat menautkan shared memory");
+exit(1);
+}
+
+mulai_thread_agen();
+shmdt(orders);
+return 0;
+}
+```
+Mengakses shared memory berisi pesanan kemudian menjalankan 3 thread agen.
 ```
 
 # Soal 3
